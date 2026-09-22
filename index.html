@@ -123,6 +123,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15p
     <div class="ab-l"><span class="ab-logo">IL·SUNG</span><div><div class="ab-title">Đi tuần hiện trường</div><div class="ab-sub">PRO-001-2026</div></div></div>
     <div class="ab-r">
       <button class="navbtn on" id="nav-form" onclick="showView('form')">📋 Phiếu</button>
+      <button class="navbtn hidden" id="nav-quick" onclick="showView('quick')">🚩 Báo nhanh</button>
       <button class="navbtn hidden" id="nav-map" onclick="showView('map')">🗺️ Bản đồ</button>
       <button class="navbtn hidden" id="nav-report" onclick="showView('report')">📊 Báo cáo</button>
       <button class="navbtn hidden" id="nav-set" onclick="showView('set')">⚙️ Cài đặt</button>
@@ -155,6 +156,24 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15p
   </div>
 
   <div id="view-done" class="hidden"><div class="done"><div><div class="done-ic">✓</div><h2>Đã ghi nhận phiếu đi tuần</h2><p>Dữ liệu và các điểm không đạt đã được lưu.</p><div class="ref">Mã phiếu <b id="doneRef">—</b></div><br><button class="btn btn-ok" onclick="resetForm()">Đi tuần phiếu mới</button></div></div></div>
+
+  <div id="view-quick" class="hidden">
+    <div class="wrap">
+      <div class="sect"><div class="sect-h"><span class="sect-num">🚩</span><span class="sect-name">Báo nhanh điểm nóng</span></div>
+        <div style="padding:14px">
+          <div class="field"><label class="lbl">Line / Khu vực <span class="req">*</span></label><select class="sel" id="q-line"><option value="">— Chọn line / khu vực —</option></select></div>
+          <div class="field"><label class="lbl">Bộ phận chịu trách nhiệm <span class="req">*</span></label><select class="sel" id="q-dept"></select></div>
+          <div class="field"><label class="lbl">Chú thích / mô tả vấn đề <span class="req">*</span></label><textarea class="inp" id="q-note" rows="3" placeholder="Mô tả vấn đề cần xử lý..."></textarea></div>
+          <div class="rvacts" style="margin-top:4px">
+            <button type="button" class="chipbtn" id="fb-q" onclick="openFlagQ()">📍 <span>Ghim vị trí</span></button>
+            <button type="button" class="chipbtn" id="pb-q" onclick="pickPhoto('q')">📷 <span>Chụp ảnh</span></button>
+          </div>
+          <div class="rvthumb" id="th-q"><img id="thi-q"><button class="rm" onclick="rmPhoto('q')">Xoá ảnh</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><div class="footer-in"><button class="btn btn-full" id="q-submit" style="background:var(--fail);color:#fff" onclick="submitQuick()">🚩 Gửi báo cáo điểm nóng</button></div></div>
+  </div>
 
   <div id="view-map" class="hidden">
     <div class="m-wrap">
@@ -273,8 +292,9 @@ function enterApp(){
   $("leaderName").textContent=SES.name;
   $("nav-map").classList.remove("hidden");
   $("nav-report").classList.remove("hidden");
+  $("nav-quick").classList.remove("hidden");
   $("nav-set").classList.toggle("hidden", SES.role!=="admin");
-  buildLineSelect(); $("inp-ngay").value=todayStr();
+  buildLineSelect(); buildQuick(); $("inp-ngay").value=todayStr();
   loadFocus(); loadChecklist();
   showView("form");
 }
@@ -282,8 +302,9 @@ function buildLineSelect(){ var sel=$("inp-line"); if(sel.dataset.built)return; 
   Object.keys(LINE_OPTS).forEach(g=>{var og=document.createElement("optgroup");og.label=g;LINE_OPTS[g].forEach(o=>{var op=document.createElement("option");op.textContent=o;og.appendChild(op);});sel.appendChild(og);});}
 
 function showView(v){
-  ["form","map","report","set"].forEach(x=>{var b=$("nav-"+x);if(b)b.classList.toggle("on",x===v);});
+  ["form","quick","map","report","set"].forEach(x=>{var b=$("nav-"+x);if(b)b.classList.toggle("on",x===v);});
   $("view-form").classList.toggle("hidden",v!=="form");
+  $("view-quick").classList.toggle("hidden",v!=="quick");
   $("view-done").classList.add("hidden");
   $("view-map").classList.toggle("hidden",v!=="map");
   $("view-report").classList.toggle("hidden",v!=="report");
@@ -345,7 +366,7 @@ function resolveZone(line){ if(!line)return null; var lb=ZONES_CFG.lineBlock,m=l
 function zoneCenter(line){var z=resolveZone(line);return z?{x:Math.round((z.x+z.w/2)*100)/100,y:Math.round((z.y+z.h/2)*100)/100}:null;}
 function expandCrop(z){var px=Math.max(z.w*0.25,2.5),py=Math.max(z.h*0.1,2.5),x=Math.max(0,z.x-px),y=Math.max(0,z.y-py);return{x:x,y:y,w:Math.min(100-x,z.w+2*px),h:Math.min(100-y,z.h+2*py)};}
 var LImg=new Image(); LImg.src="layout.png"; LImg.onload=function(){if($("flagModal").classList.contains("show"))drawFlag();};
-function openFlag(id){var line=val("inp-line"),z=resolveZone(line);if(!z){toast('Khu vực "'+(line||"chưa chọn")+'" chưa có toạ độ');return;}
+function openFlag(id,lineOverride){var line=lineOverride||val("inp-line"),z=resolveZone(line);if(!z){toast('Khu vực "'+(line||"chưa chọn")+'" chưa có toạ độ');return;}
   flagCur={id:id,z:z,dz:expandCrop(z)};$("flagTitle").textContent="📍 "+line;$("flagModal").classList.add("show");drawFlag();}
 function closeFlag(){$("flagModal").classList.remove("show");markFB(flagCur.id);}
 function clearFlag(){if(flagCur.id)delete flagPos[flagCur.id];drawFlag();}
@@ -365,11 +386,11 @@ function genRef(){var d=new Date(),p=n=>String(n).padStart(2,"0");return"DT-"+d.
 async function submitForm(){
   var bad=false;[["f-ngay","inp-ngay"],["f-ca","inp-ca"],["f-line","inp-line"]].forEach(x=>{var b=!val(x[1]);$(x[0]).classList.toggle("bad",b);if(b)bad=true;});
   var first=null;
-  ITEMS.forEach(it=>{var v=pf[it.id],b=(v===undefined)||(v===0&&!val("note-"+it.id));$("it-"+it.id).classList.toggle("bad",b);if(v===0)$("note-"+it.id).classList.toggle("bad",!val("note-"+it.id));if(b&&!first)first=$("it-"+it.id);if(b)bad=true;});
-  if(bad){toast("Còn mục chưa đánh giá / thiếu thông tin bắt buộc");if(first)scrollTo({top:first.getBoundingClientRect().top+scrollY-120,behavior:"smooth"});return;}
+  ITEMS.forEach(it=>{var v=pf[it.id],b=(v===0&&!val("note-"+it.id));$("it-"+it.id).classList.toggle("bad",b);if(v===0)$("note-"+it.id).classList.toggle("bad",!val("note-"+it.id));if(b&&!first)first=$("it-"+it.id);if(b)bad=true;});
+  if(bad){toast("Mục Không đạt cần điền chú thích (và đủ Ngày/Ca/Line)");if(first)scrollTo({top:first.getBoundingClientRect().top+scrollY-120,behavior:"smooth"});return;}
   var btn=$("btn-submit");btn.disabled=true;btn.textContent="Đang gửi…";
   var line=val("inp-line"),refCode=genRef();
-  var results=ITEMS.map(it=>{var o={cat:it.cat,text:it.text,result:pf[it.id]===1?"Đạt":"Không đạt",note:pf[it.id]===0?val("note-"+it.id):""};if(pf[it.id]===0){o.dept=val("dept-"+it.id)||it.dept||"";var p=flagPos[it.id]||zoneCenter(line);if(p){o.x=p.x;o.y=p.y;}}return o;});
+  var results=ITEMS.map(it=>{var st=pf[it.id]===1?"Đạt":pf[it.id]===0?"Không đạt":"Chưa đánh giá";var o={cat:it.cat,text:it.text,result:st,note:pf[it.id]===0?val("note-"+it.id):""};if(pf[it.id]===0){o.dept=val("dept-"+it.id)||it.dept||"";var p=flagPos[it.id]||zoneCenter(line);if(p){o.x=p.x;o.y=p.y;}}return o;});
   try{
     var flags=[],ngIdx=0;
     for(var i=0;i<ITEMS.length;i++){var it=ITEMS[i];if(pf[it.id]===0){var p=flagPos[it.id]||zoneCenter(line)||{},photo="";
@@ -492,6 +513,25 @@ async function snapEl(el,filename,title){
 }
 function snapMap(){snapEl($("mapBox"),"ban-do-di-tuan.png","Bản đồ đi tuần PRO-001");}
 function snapReport(){snapEl($("reportCard"),"bao-cao-di-tuan.png","Báo cáo đi tuần PRO-001");}
+
+function buildQuick(){
+  var ls=$("q-line"); if(ls&&!ls.dataset.built){ls.dataset.built="1";Object.keys(LINE_OPTS).forEach(g=>{var og=document.createElement("optgroup");og.label=g;LINE_OPTS[g].forEach(o=>{var op=document.createElement("option");op.textContent=o;og.appendChild(op);});ls.appendChild(og);});}
+  var ds=$("q-dept"); if(ds&&!ds.dataset.built){ds.dataset.built="1";ds.innerHTML='<option value="">— Chọn bộ phận —</option>'+DEPTS.map(d=>'<option>'+d+'</option>').join("");}
+}
+function openFlagQ(){var line=val("q-line");if(!line){toast("Chọn Line trước khi ghim");return;}openFlag("q",line);}
+async function submitQuick(){
+  var line=val("q-line"),dept=val("q-dept"),note=val("q-note");
+  if(!line||!dept||!note){toast("Cần chọn Line, Bộ phận và điền Chú thích");return;}
+  var btn=$("q-submit");btn.disabled=true;btn.textContent="Đang gửi…";
+  var refCode=genRef(),p=flagPos["q"]||zoneCenter(line)||{},photo="";
+  try{
+    if(photoData["q"]){var path=refCode+"/q.jpg",up=await sb.storage.from("photos").upload(path,dataURLtoBlob(photoData["q"]),{contentType:"image/jpeg",upsert:true});if(!up.error)photo=sb.storage.from("photos").getPublicUrl(path).data.publicUrl;}
+    var payload={ref_code:refCode,ngay:todayStr(),ca:"Báo nhanh",line:line,tong_dat:0,tong_khong_dat:1,results:[],flags:[{cat:"Điểm nóng",text:note,note:"",x:p.x,y:p.y,photo:photo,dept:dept}]};
+    await rpc("submit_walkthrough",{p_token:SES.token,p_payload:payload});
+    toast("Đã gửi báo cáo điểm nóng — xem trên Bản đồ.");resetQuick();showView("map");
+  }catch(e){btn.disabled=false;btn.textContent="🚩 Gửi báo cáo điểm nóng";toast("Lỗi gửi: "+(e.message||e));}
+}
+function resetQuick(){var s=$("q-submit");if(s){s.disabled=false;s.textContent="🚩 Gửi báo cáo điểm nóng";}if($("q-line"))$("q-line").value="";if($("q-dept"))$("q-dept").value="";if($("q-note"))$("q-note").value="";delete flagPos["q"];delete photoData["q"];if($("th-q"))$("th-q").style.display="none";markFB("q");var b=$("pb-q");if(b){b.classList.remove("ok");b.querySelector("span").textContent="Chụp ảnh";}}
 
 (async function(){ if(!sb){ $("lgErr").textContent="Không tải được thư viện Supabase (kiểm tra mạng)."; $("lgErr").style.display="block"; return; }
   await bootLogin(); await tryRestore(); })();
