@@ -84,8 +84,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15p
 #view-map .m-wrap{max-width:1200px;margin:0 auto;padding:14px}
 .m-filters{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px}
 .m-filters input[type=date]{padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;font-family:var(--mono);font-size:12px}
-.m-scroll{position:relative;overflow:auto;background:#f1f5f9;border:1px solid var(--line);border-radius:10px;max-height:64vh}
-#mapImg{display:block;width:100%}#mapBox{position:relative;width:100%}
+.m-scroll{position:relative;overflow:hidden;background:#f1f5f9;border:1px solid var(--line);border-radius:10px}
+#mapCapture #mStats{margin:0;background:#fff;padding:9px 12px;border-bottom:1px solid var(--line);border-radius:0;text-align:left}
+.m-sum-title{width:100%;font-weight:700;font-size:12.5px;color:var(--ink);margin-bottom:3px}
+#mapImg{display:block;height:auto;width:auto;max-width:100%;max-height:calc(100vh - 215px);margin:0 auto}#mapBox{position:relative;display:inline-block;max-width:100%;line-height:0}#mapCapture{text-align:center}
 .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:2}.pin .dot{width:15px;height:15px;border-radius:50% 50% 50% 0;transform:rotate(45deg);border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.35)}.pin.res{opacity:.5}.pin.res .dot{border-radius:50%;transform:none;background:var(--pass)!important}
 .m-stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .m-stat{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px}.m-stat .n{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--brand)}.m-stat .l{font-size:11px;color:var(--muted)}
@@ -183,8 +185,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15p
         <label style="margin-left:auto"><input type="checkbox" id="mShowRes" onchange="mRender()"> Hiện đã khắc phục</label>
         <button class="btn btn-p" style="padding:7px 11px" onclick="snapMap()">📸 Chụp</button>
       </div>
-      <div class="m-scroll"><div id="mapBox"><img id="mapImg" src="layout.png" alt="layout"></div></div>
-      <div class="m-stats" id="mStats"></div>
+      <div class="m-scroll" id="mapCapture"><div class="m-stats" id="mStats"></div><div id="mapBox"><img id="mapImg" src="layout.png" alt="layout"></div></div>
       <div class="m-list" id="mList"></div>
     </div>
   </div>
@@ -421,7 +422,8 @@ function mRender(){ var box=$("mapBox");[...box.querySelectorAll(".pin")].forEac
   var vis=mVisible(),active=mData.filter(f=>!f.resolved);
   vis.forEach(f=>{if(typeof f.x!=="number"||typeof f.y!=="number")return;var idx=mData.indexOf(f);var pin=document.createElement("div");pin.className="pin"+(f.resolved?" res":"");pin.style.left=f.x+"%";pin.style.top=f.y+"%";pin.innerHTML='<div class="dot" style="background:'+deptColor(f.dept)+'"></div>';pin.onclick=()=>mDetail(idx);box.appendChild(pin);});
   var byc={};active.forEach(f=>{var dp=f.dept||"Khác";byc[dp]=(byc[dp]||0)+1;});
-  $("mStats").innerHTML='<div class="m-stat"><span class="n">'+active.length+'</span> <span class="l">điểm cần xử lý</span></div>'+Object.entries(byc).sort((a,b)=>b[1]-a[1]).map(([c,n])=>'<div class="m-stat"><span class="n" style="color:'+deptColor(c)+'">'+n+'</span> <span class="l">'+c+'</span></div>').join("");
+  var rng=($("mFrom").value||"đầu")+" → "+($("mTo").value||"nay");
+  $("mStats").innerHTML='<div class="m-sum-title">🚩 Điểm nóng theo bộ phận · '+rng+'</div><div class="m-stat"><span class="n">'+active.length+'</span> <span class="l">điểm cần xử lý</span></div>'+Object.entries(byc).sort((a,b)=>b[1]-a[1]).map(([c,n])=>'<div class="m-stat"><span class="n" style="color:'+deptColor(c)+'">'+n+'</span> <span class="l">'+c+'</span></div>').join("");
   var L=$("mList");if(!vis.length){L.innerHTML='<div class="spin">Không có điểm nào.</div>';return;}
   L.innerHTML=vis.map(f=>{var idx=mData.indexOf(f);return '<div class="fitem'+(f.resolved?" res":"")+'" onclick="mDetail('+idx+')"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+f.line+(f.resolved?' <span style="color:var(--pass)">✓</span>':'')+'</b><span class="badge" style="background:'+deptColor(f.dept)+'">'+(f.dept||"?")+'</span></div><div style="color:var(--muted);margin-top:2px">'+shortCat(f.cat)+' · '+f.text+' · '+f.ngay+' '+(f.ca||"")+(f.photo?' · 📷':'')+'</div>'+(f.note?'<div style="color:var(--fail);margin-top:2px">→ '+f.note+'</div>':'')+'</div>';}).join("");
 }
@@ -511,7 +513,7 @@ async function snapEl(el,filename,title){
     },"image/png");
   }catch(e){toast("Lỗi tạo ảnh: "+(e.message||e));}
 }
-function snapMap(){snapEl($("mapBox"),"ban-do-di-tuan.png","Bản đồ đi tuần PRO-001");}
+function snapMap(){snapEl($("mapCapture"),"ban-do-di-tuan.png","Bản đồ đi tuần PRO-001");}
 function snapReport(){snapEl($("reportCard"),"bao-cao-di-tuan.png","Báo cáo đi tuần PRO-001");}
 
 function buildQuick(){
