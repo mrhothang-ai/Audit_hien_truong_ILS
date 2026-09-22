@@ -78,6 +78,13 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 .modal-f{padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--line2);flex-wrap:wrap}.modal-b{padding:15px}
 .dt-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px}.dt-row:last-child{border:none}.dt-k{color:var(--muted);min-width:72px;font-weight:600;font-size:12px}
 .dt-photo img{width:100%;max-height:320px;object-fit:contain;border-radius:9px;border:1px solid var(--line);margin-top:10px;background:var(--bg);cursor:zoom-in}
+.fix-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.fix-h{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.fix-img{width:100%;max-height:220px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:var(--bg);cursor:zoom-in;display:block}
+.fix-empty{font-size:12px;color:var(--faint);padding:18px 10px;text-align:center;background:var(--bg);border-radius:8px;border:1px dashed var(--line)}
+.fix-note-ro{font-size:12.5px;color:var(--ink);background:var(--pass-t);border:1px solid #BCE9D5;border-radius:8px;padding:8px 10px;margin-top:8px}
+.prop-card{background:var(--amber-t);border:1px solid #E9Cf9a;border-radius:8px;padding:8px 10px;margin-bottom:10px}
+.prop-h{font-size:11px;font-weight:700;color:#8A5600;margin-bottom:6px}
 .done{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
 .done-ic{width:70px;height:70px;border-radius:50%;background:var(--pass-t);color:var(--pass);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 16px}
 .done h2{font-size:21px;margin-bottom:8px}.done p{color:var(--muted);font-size:14px;margin-bottom:16px}.done .ref{font-family:var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 16px;display:inline-block;margin-bottom:20px}
@@ -113,7 +120,7 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
     <div class="login-top"><div class="login-logo">IL·SUNG</div><h1>Đi tuần hiện trường</h1><p>PRO-001-2026</p></div>
     <div class="login-body">
       <div class="fld"><label class="lbl">Tên</label><select class="sel" id="lgName"><option value="">— Chọn tên —</option></select></div>
-      <div class="fld"><label class="lbl">Mã PIN</label><input class="inp mono" id="lgPin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off"></div>
+      <div class="fld"><label class="lbl">Mật khẩu</label><input class="inp" id="lgPin" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password"></div>
       <div class="err" id="lgErr"></div>
       <button class="btn btn-p btn-full" id="lgBtn" onclick="doLogin()" style="margin-top:6px">Đăng nhập</button>
     </div>
@@ -216,11 +223,11 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 
       <div class="s-card"><div class="s-h"><span>Người dùng (leader / quản lý / admin)</span></div>
         <div class="s-b">
-          <div style="overflow-x:auto"><table class="tbl" id="usrTbl"><thead><tr><th>Tên</th><th>Vai trò</th><th>Đặt PIN mới</th><th>Bật</th><th></th></tr></thead><tbody id="usrBody"></tbody></table></div>
+          <div style="overflow-x:auto"><table class="tbl" id="usrTbl"><thead><tr><th>Tên</th><th>Vai trò</th><th>Mật khẩu mới</th><th>Bật</th><th></th></tr></thead><tbody id="usrBody"></tbody></table></div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="inp" id="nuName" placeholder="Tên mới" style="width:auto;flex:1;min-width:120px">
             <select class="sel" id="nuRole" style="width:auto"><option value="leader">leader</option><option value="manager">manager</option><option value="admin">admin</option></select>
-            <input class="inp mono" id="nuPin" placeholder="PIN" style="width:90px">
+            <input class="inp mono" id="nuPin" placeholder="Mật khẩu" style="width:120px">
             <button class="btn btn-p" onclick="addUser()">+ Thêm người</button>
           </div>
         </div></div>
@@ -238,6 +245,7 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
   </div></div>
 
   <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden">
+  <input type="file" id="fixPhotoInput" accept="image/*" class="hidden">
 </div>
 <div id="toast"></div>
 
@@ -247,13 +255,14 @@ const SUPA_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsIn
 const ZONES_CFG={"lineBlock": {"x": 19.71, "y": 37.09, "w": 41.65, "h": 26.95, "count": 17}, "peripheral": {"Khu vực kho shipment": [{"x": 69.1, "y": 58.06, "w": 5.88, "h": 6.59}, {"x": 74.84, "y": 59.69, "w": 13.62, "h": 5.17}], "Khu vực kho vật liệu": [{"x": 69.18, "y": 36.99, "w": 9.53, "h": 15.4}, {"x": 75.2, "y": 52.29, "w": 14.27, "h": 7.4}, {"x": 83.08, "y": 46.41, "w": 6.67, "h": 6.38}], "Khu vực IQC": [{"x": 78.85, "y": 43.78, "w": 4.16, "h": 8.71}], "Khu vực rework": [{"x": 44.95, "y": 32.93, "w": 18.28, "h": 3.34}], "Khu vực WIP": [{"x": 63.3, "y": 33.03, "w": 9.89, "h": 3.34}], "Khu vực kho jig": [{"x": 9.82, "y": 55.83, "w": 5.88, "h": 9.12}], "Khu vực văn phòng chính": [{"x": 6.09, "y": 45.3, "w": 9.53, "h": 10.64}, {"x": 15.7, "y": 44.99, "w": 3.94, "h": 19.76}], "Khu vực văn phòng kho": [{"x": 69.03, "y": 52.29, "w": 6.09, "h": 5.57}], "Khu vực kho rác": [{"x": 79.21, "y": 37.9, "w": 3.94, "h": 5.78}, {"x": 83.08, "y": 38.71, "w": 6.74, "h": 7.4}], "Khu vực kho thiết bị": [{"x": 92.11, "y": 44.59, "w": 3.66, "h": 20.57}], "Khu vực cửa từ": [{"x": 10.04, "y": 32.12, "w": 9.25, "h": 12.36}], "Khu vực locker": [{"x": 19.21, "y": 32.22, "w": 18.35, "h": 4.15}], "Phòng họp hiện trường": [{"x": 37.49, "y": 32.43, "w": 7.46, "h": 4.05}], "Khu vực sảnh VIP": [{"x": 1.15, "y": 33.03, "w": 4.73, "h": 19.35}], "Hội trường Kinh Bắc": [{"x": 1.29, "y": 52.49, "w": 8.32, "h": 12.97}], "Khu vực 200%": [{"x": 61.36, "y": 52.79, "w": 7.74, "h": 11.96}], "Khu vực PM thiết bị": [{"x": 61.43, "y": 37.09, "w": 7.74, "h": 15.71}], "WC trên": [{"x": 5.59, "y": 32.73, "w": 4.37, "h": 12.26}], "WC dưới": [{"x": 73.69, "y": 32.12, "w": 9.53, "h": 5.78}]}};
 var sb=(window.supabase)?window.supabase.createClient(SUPA_URL,SUPA_ANON):null;
 var SES=null, ITEMS=[], CATS=[];
-var pf={}, flagPos={}, photoData={}, flagCur={}, photoCur=null;
+var pf={}, flagPos={}, photoData={}, flagCur={}, photoCur=null, fixPhotoData=null;
 var mData=[];
 const DEPTS=["PRO","QC","MM","EQM","HR","INNO","Khác"];
 const DEPT_COLORS={PRO:"#DC2626",QC:"#2563EB",MM:"#C77A00",EQM:"#7C3AED",HR:"#0E9F6E",INNO:"#0891B2","Khác":"#5C6B80"};
 function deptColor(d){return DEPT_COLORS[d]||"#94A3B8";}
 function deptOptions(sel){return DEPTS.map(d=>'<option '+(d===sel?"selected":"")+'>'+d+'</option>').join("");}
 const $=id=>document.getElementById(id);
+var MAP_ONLY=(new URLSearchParams(location.search).get("mode")==="map")||location.hash==="#map";
 const val=id=>{var e=$(id);return e?e.value.trim():"";};
 function toast(m){$("toast").textContent=m;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2600);}
 function todayStr(){var d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());}
@@ -275,7 +284,7 @@ async function tryRestore(){
 }
 async function doLogin(){
   var name=$("lgName").value, pin=$("lgPin").value;
-  if(!name||!pin){ $("lgErr").textContent="Chọn tên và nhập PIN."; $("lgErr").style.display="block"; return; }
+  if(!name||!pin){ $("lgErr").textContent="Chọn tên và nhập mật khẩu."; $("lgErr").style.display="block"; return; }
   var btn=$("lgBtn"); btn.disabled=true; btn.textContent="Đang đăng nhập…"; $("lgErr").style.display="none";
   try{
     var res=await rpc("login",{p_name:name,p_pin:pin});
@@ -295,9 +304,10 @@ function enterApp(){
   $("nav-report").classList.remove("hidden");
   $("nav-quick").classList.remove("hidden");
   $("nav-set").classList.toggle("hidden", SES.role!=="admin");
+  if(MAP_ONLY){["form","quick","report","set"].forEach(x=>{var nb=$("nav-"+x);if(nb)nb.classList.add("hidden");});}
   buildLineSelect(); buildQuick(); $("inp-ngay").value=todayStr();
   loadFocus(); loadChecklist();
-  showView("form");
+  showView(MAP_ONLY?"map":"form");
 }
 function buildLineSelect(){ var sel=$("inp-line"); if(sel.dataset.built)return; sel.dataset.built="1";
   Object.keys(LINE_OPTS).forEach(g=>{var og=document.createElement("optgroup");og.label=g;LINE_OPTS[g].forEach(o=>{var op=document.createElement("option");op.textContent=o;og.appendChild(op);});sel.appendChild(og);});}
@@ -413,7 +423,7 @@ function shortCat(c){return (c||"").split("—")[0].split("-")[0].trim().slice(0
 async function mLoad(){ $("mList").innerHTML='<div class="spin">Đang tải…</div>';
   try{ var q=sb.from("flags").select("*").order("created_at",{ascending:false});var f=$("mFrom").value,t=$("mTo").value;if(f)q=q.gte("ngay",f);if(t)q=q.lte("ngay",t);
     var d=await q; if(d.error)throw d.error;
-    mData=(d.data||[]).map(r=>({id:r.id,ngay:r.ngay,ca:r.ca,line:r.line,leader:r.leader,refCode:r.ref_code,cat:r.cat,text:r.txt,note:r.note,x:r.x,y:r.y,photo:r.photo,dept:r.dept||"",resolved:r.resolved,resolvedAt:r.resolved_at}));
+    mData=(d.data||[]).map(r=>({id:r.id,ngay:r.ngay,ca:r.ca,line:r.line,leader:r.leader,refCode:r.ref_code,cat:r.cat,text:r.txt,note:r.note,x:r.x,y:r.y,photo:r.photo,dept:r.dept||"",fixPhoto:r.fix_photo||"",fixNote:r.fix_note||"",proposed:!!r.proposed,proposedBy:r.proposed_by||"",resolved:r.resolved,resolvedAt:r.resolved_at}));
     mRender();
   }catch(e){ $("mList").innerHTML='<div class="spin" style="color:var(--fail)">Lỗi: '+(e.message||e)+'</div>'; }
 }
@@ -425,7 +435,7 @@ function mRender(){ var box=$("mapBox");[...box.querySelectorAll(".pin")].forEac
   var rng=($("mFrom").value||"đầu")+" → "+($("mTo").value||"nay");
   $("mStats").innerHTML='<div class="m-sum-title">🚩 Điểm nóng theo bộ phận · '+rng+'</div><div class="m-stat"><span class="n">'+active.length+'</span> <span class="l">điểm cần xử lý</span></div>'+Object.entries(byc).sort((a,b)=>b[1]-a[1]).map(([c,n])=>'<div class="m-stat"><span class="n" style="color:'+deptColor(c)+'">'+n+'</span> <span class="l">'+c+'</span></div>').join("");
   var L=$("mList");if(!vis.length){L.innerHTML='<div class="spin">Không có điểm nào.</div>';return;}
-  L.innerHTML=vis.map(f=>{var idx=mData.indexOf(f);return '<div class="fitem'+(f.resolved?" res":"")+'" onclick="mDetail('+idx+')"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+f.line+(f.resolved?' <span style="color:var(--pass)">✓</span>':'')+'</b><span class="badge" style="background:'+deptColor(f.dept)+'">'+(f.dept||"?")+'</span></div><div style="color:var(--muted);margin-top:2px">'+shortCat(f.cat)+' · '+f.text+' · '+f.ngay+' '+(f.ca||"")+(f.photo?' · 📷':'')+'</div>'+(f.note?'<div style="color:var(--fail);margin-top:2px">→ '+f.note+'</div>':'')+'</div>';}).join("");
+  L.innerHTML=vis.map(f=>{var idx=mData.indexOf(f);return '<div class="fitem'+(f.resolved?" res":"")+'" onclick="mDetail('+idx+')"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+f.line+(f.resolved?' <span style="color:var(--pass)">✓</span>':'')+'</b><span class="badge" style="background:'+deptColor(f.dept)+'">'+(f.dept||"?")+'</span></div><div style="color:var(--muted);margin-top:2px">'+shortCat(f.cat)+' · '+f.text+' · '+f.ngay+' '+(f.ca||"")+(f.photo?' · 📷':'')+((f.proposed&&!f.resolved)?' · <span style="color:var(--amber)">🕓 đề xuất</span>':'')+'</div>'+(f.note?'<div style="color:var(--fail);margin-top:2px">→ '+f.note+'</div>':'')+'</div>';}).join("");
 }
 function mDetail(idx){var f=mData[idx];if(!f)return;window._pf=f;
   var b='<div class="dt-row"><span class="dt-k">Bộ phận</span><span><span class="badge" style="background:'+deptColor(f.dept)+'">'+(f.dept||"—")+'</span></span></div>'
@@ -435,14 +445,54 @@ function mDetail(idx){var f=mData[idx];if(!f)return;window._pf=f;
    +'<div class="dt-row"><span class="dt-k">Leader</span><span>'+(f.leader||"")+'</span></div>'
    +'<div class="dt-row"><span class="dt-k">Mã phiếu</span><span class="mono">'+(f.refCode||"")+'</span></div>';
   if(f.resolved)b+='<div style="margin-top:10px;background:var(--pass-t);border:1px solid #BCE9D5;color:#0A7A54;border-radius:8px;padding:9px 12px;font-size:12.5px">✓ Đã khắc phục'+(f.resolvedAt?' · '+String(f.resolvedAt).slice(0,16).replace("T"," "):'')+'</div>';
-  if(f.photo)b+='<div class="dt-photo"><a href="'+f.photo+'" target="_blank" rel="noopener"><img src="'+f.photo+'" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'📷 <u>Mở ảnh</u>\'"></a></div>';
-  $("dtTitle").textContent="📍 "+f.line; $("dtBody").innerHTML=b;
-  var canResolve=(SES.role==="manager"||SES.role==="admin")&&!f.resolved;
-  $("dtFoot").innerHTML='<button class="btn btn-g" onclick="closeM(\'dtModal\')">Đóng</button>'+(canResolve?'<button class="btn btn-ok" onclick="mResolve()">✓ Đã khắc phục</button>':'');
+  fixPhotoData=null;
+  var mgr=(SES.role==="manager"||SES.role==="admin");
+  var hasProp=(f.proposed&&(f.fixPhoto||f.fixNote));
+  var area='<div class="fix-grid">';
+  area+='<div><div class="fix-h">Ảnh lỗi hiện tại</div>'+(f.photo?'<a href="'+f.photo+'" target="_blank" rel="noopener"><img class="fix-img" src="'+f.photo+'" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'📷 <u>Mở ảnh</u>\'"></a>':'<div class="fix-empty">Không có ảnh</div>')+'</div>';
+  area+='<div><div class="fix-h">Khắc phục</div>';
+  if(f.resolved){area+=(f.fixPhoto?'<a href="'+f.fixPhoto+'" target="_blank" rel="noopener"><img class="fix-img" src="'+f.fixPhoto+'" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'"></a>':'')+(f.fixNote?'<div class="fix-note-ro">'+f.fixNote+'</div>':'')+((!f.fixPhoto&&!f.fixNote)?'<div class="fix-empty">—</div>':'');}
+  else{
+    if(hasProp)area+='<div class="prop-card"><div class="prop-h">🕓 Đề xuất chờ duyệt'+(f.proposedBy?" · "+f.proposedBy:"")+'</div>'+(f.fixPhoto?'<a href="'+f.fixPhoto+'" target="_blank" rel="noopener"><img class="fix-img" src="'+f.fixPhoto+'" referrerpolicy="no-referrer"></a>':'')+(f.fixNote?'<div class="fix-note-ro" style="margin-top:6px">'+f.fixNote+'</div>':'')+'</div>';
+    area+='<div id="fixPhotoWrap"></div><button type="button" class="chipbtn ok" id="fixPhotoBtn" onclick="pickFixPhoto()">📷 <span>'+(hasProp?"Bổ sung/đổi ảnh":"Thêm ảnh")+'</span></button><textarea id="fixNote" class="rvnote" rows="2" style="width:100%;margin-top:8px;border-color:var(--line)" placeholder="'+(mgr?"Chú thích khắc phục...":"Đề xuất cách khắc phục...")+'" oninput="updateResolveBtn()"></textarea>';
+  }
+  area+='</div></div>';
+  $("dtTitle").textContent="📍 "+f.line; $("dtBody").innerHTML=b+area;
+  $("dtFoot").innerHTML='<button class="btn btn-g" onclick="closeM(\'dtModal\')">Đóng</button>'+(!f.resolved?'<button class="btn btn-ok" id="resolveBtn" disabled style="opacity:.5" onclick="'+(mgr?"mResolve()":"mPropose()")+'">'+(mgr?"✓ Duyệt khắc phục":"📤 Đề xuất khắc phục")+'</button>':'');
   $("dtModal").classList.add("show");
+  updateResolveBtn();
 }
 function closeM(id){$(id).classList.remove("show");}
-async function mResolve(){ var f=window._pf;if(!f)return; try{ var r=await rpc("resolve_flag",{p_token:SES.token,p_flag_id:f.id}); if(r&&r.ok){f.resolved=true;f.resolvedAt="vừa xong";closeM("dtModal");mRender();toast("Đã gỡ cờ.");}else toast("Không gỡ được cờ."); }catch(e){ toast("Lỗi: "+(e.message||e)); } }
+async function mResolve(){ var f=window._pf;if(!f)return;
+  var note=($("fixNote")&&$("fixNote").value.trim())||"";
+  var hasExisting=!!(f.proposed&&(f.fixPhoto||f.fixNote));
+  if(!fixPhotoData&&!note&&!hasExisting){toast("Cần ảnh hoặc chú thích khắc phục");return;}
+  var btn=$("resolveBtn");if(btn){btn.disabled=true;btn.textContent="Đang lưu…";}
+  try{
+    var url="";
+    if(fixPhotoData){var path=(f.refCode||"fix")+"/fix-"+f.id+".jpg",up=await sb.storage.from("photos").upload(path,dataURLtoBlob(fixPhotoData),{contentType:"image/jpeg",upsert:true});if(!up.error)url=sb.storage.from("photos").getPublicUrl(path).data.publicUrl;}
+    var r=await rpc("resolve_flag",{p_token:SES.token,p_flag_id:f.id,p_fix_photo:url,p_fix_note:note});
+    if(r&&r.ok){f.resolved=true;f.resolvedAt="vừa xong";if(url)f.fixPhoto=url;if(note)f.fixNote=note;closeM("dtModal");mRender();toast("Đã duyệt khắc phục.");}
+  }catch(e){toast("Lỗi: "+(e.message||e));if(btn){btn.disabled=false;btn.textContent="✓ Duyệt khắc phục";}}
+}
+async function mPropose(){ var f=window._pf;if(!f)return;
+  var note=($("fixNote")&&$("fixNote").value.trim())||"";
+  if(!fixPhotoData&&!note){toast("Cần ảnh hoặc chú thích");return;}
+  var btn=$("resolveBtn");if(btn){btn.disabled=true;btn.textContent="Đang gửi…";}
+  try{
+    var url="";
+    if(fixPhotoData){var path=(f.refCode||"fix")+"/prop-"+f.id+".jpg",up=await sb.storage.from("photos").upload(path,dataURLtoBlob(fixPhotoData),{contentType:"image/jpeg",upsert:true});if(!up.error)url=sb.storage.from("photos").getPublicUrl(path).data.publicUrl;}
+    var r=await rpc("propose_fix",{p_token:SES.token,p_flag_id:f.id,p_fix_photo:url,p_fix_note:note});
+    if(r&&r.ok){f.proposed=true;if(url)f.fixPhoto=url;if(note)f.fixNote=note;f.proposedBy=SES.name;closeM("dtModal");mRender();toast("Đã gửi đề xuất khắc phục — chờ duyệt.");}
+  }catch(e){toast("Lỗi: "+(e.message||e));if(btn){btn.disabled=false;btn.textContent="📤 Đề xuất khắc phục";}}
+}
+function updateResolveBtn(){var btn=$("resolveBtn");if(!btn)return;var f=window._pf||{};var note=($("fixNote")&&$("fixNote").value.trim())||"";var hasNew=!!fixPhotoData||!!note;var mgr=(SES.role==="manager"||SES.role==="admin");var hasExisting=!!(f.proposed&&(f.fixPhoto||f.fixNote));var ok=hasNew||(mgr&&hasExisting);btn.disabled=!ok;btn.style.opacity=ok?"1":".5";}
+function pickFixPhoto(){var inp=$("fixPhotoInput");inp.value="";inp.click();}
+function clearFixPhoto(){fixPhotoData=null;var w=$("fixPhotoWrap");if(w)w.innerHTML="";var b=$("fixPhotoBtn");if(b)b.querySelector("span").textContent="Thêm ảnh khắc phục";updateResolveBtn();}
+document.addEventListener("DOMContentLoaded",function(){var fi=$("fixPhotoInput");if(!fi)return;fi.addEventListener("change",function(e){var file=e.target.files&&e.target.files[0];if(!file)return;
+  var rd=new FileReader();rd.onload=function(ev){var img=new Image();img.onload=function(){var max=1280,w=img.width,h=img.height;if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}var c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);fixPhotoData=c.toDataURL("image/jpeg",0.7);
+    var wrap=$("fixPhotoWrap");if(wrap)wrap.innerHTML='<img class="fix-img" src="'+fixPhotoData+'" style="margin-bottom:6px"><div style="text-align:right"><button class="rm" style="font-size:11px;color:var(--fail);background:none;border:none;cursor:pointer" onclick="clearFixPhoto()">Xoá ảnh</button></div>';
+    var b=$("fixPhotoBtn");if(b)b.querySelector("span").textContent="Chụp/chọn lại";updateResolveBtn();};img.src=ev.target.result;};rd.readAsDataURL(file);});});
 
 var clRows=[];
 async function loadSettings(){
@@ -476,9 +526,9 @@ async function loadUsers(){ try{var u=await rpc("list_users",{p_token:SES.token}
   +'<td><button class="minibtn del" onclick="delUser(\''+esc(x.name)+'\')">Xoá</button></td></tr>').join("");}catch(e){$("usrBody").innerHTML='<tr><td colspan=5 style="color:var(--fail)">'+(e.message||e)+'</td></tr>';}}
 async function setUser(name,field,value){ var args={p_token:SES.token,p_name:name,p_role:null,p_pin:null,p_active:null}; args["p_"+field]=value;
   try{await rpc("save_user",args);toast("Đã cập nhật "+name+".");}catch(e){toast("Lỗi: "+(e.message||e));loadUsers();}}
-async function resetPin(name){ var el=$("pin-"+name),pin=el?el.value.trim():""; if(!pin){toast("Nhập PIN mới");return;}
-  try{await rpc("save_user",{p_token:SES.token,p_name:name,p_role:null,p_pin:pin,p_active:null});el.value="";toast("Đã đặt PIN mới cho "+name+".");}catch(e){toast("Lỗi: "+(e.message||e));}}
-async function addUser(){ var name=val("nuName"),role=$("nuRole").value,pin=val("nuPin"); if(!name||!pin){toast("Nhập tên và PIN");return;}
+async function resetPin(name){ var el=$("pin-"+name),pin=el?el.value.trim():""; if(!pin){toast("Nhập mật khẩu mới");return;}
+  try{await rpc("save_user",{p_token:SES.token,p_name:name,p_role:null,p_pin:pin,p_active:null});el.value="";toast("Đã đổi mật khẩu cho "+name+".");}catch(e){toast("Lỗi: "+(e.message||e));}}
+async function addUser(){ var name=val("nuName"),role=$("nuRole").value,pin=val("nuPin"); if(!name||!pin){toast("Nhập tên và mật khẩu");return;}
   try{await rpc("save_user",{p_token:SES.token,p_name:name,p_role:role,p_pin:pin,p_active:true});$("nuName").value="";$("nuPin").value="";toast("Đã thêm "+name+".");loadUsers();}catch(e){toast("Lỗi: "+(e.message||e));}}
 async function delUser(name){ if(!confirm("Xoá tài khoản "+name+"?"))return; try{var r=await rpc("delete_user",{p_token:SES.token,p_name:name});if(r&&r.ok){toast("Đã xoá "+name+".");loadUsers();}}catch(e){toast("Lỗi: "+(e.message||e));}}
 
