@@ -137,7 +137,7 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
       <button class="navbtn hidden" id="nav-report" onclick="showView('report')">📊 Báo cáo</button>
       <button class="navbtn hidden" id="nav-set" onclick="showView('set')">⚙️ Cài đặt</button>
       <span class="userchip" id="userchip"></span>
-      <button class="navbtn" onclick="logout()">Đăng xuất</button>
+      <button class="navbtn" id="btn-logout" onclick="logout()">Đăng xuất</button>
     </div>
   </div>
 
@@ -292,18 +292,29 @@ async function doLogin(){
     SES={token:res.token,name:res.name,role:res.role};
     localStorage.setItem("pro001_ses",JSON.stringify(SES));
     enterApp();
+    if(window._pendingFlagId){var pid=window._pendingFlagId;window._pendingFlagId=null;try{await mLoad();}catch(_e){}var i=mData.findIndex(x=>x.id===pid);if(i>=0)mDetail(i);}
   }catch(e){ $("lgErr").textContent="Lỗi kết nối: "+(e.message||e); $("lgErr").style.display="block"; }
   finally{ btn.disabled=false; btn.textContent="Đăng nhập"; }
 }
 function logout(){ if(sb&&SES)rpc("logout",{p_token:SES.token}).catch(()=>{}); SES=null; localStorage.removeItem("pro001_ses"); location.reload(); }
+function goLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("lgErr").style.display="none"; }
+function loginToFix(id){ window._pendingFlagId=id; closeM("dtModal"); goLogin(); }
 function enterApp(){
   $("login").classList.add("hidden"); $("app").classList.remove("hidden");
-  $("userchip").innerHTML='👤 <b>'+SES.name+'</b> · '+SES.role;
+  var guest=!SES, lo=$("btn-logout");
+  $("userchip").innerHTML= guest ? '👁️ Khách' : ('👤 <b>'+SES.name+'</b> · '+SES.role);
+  if(guest){
+    ["form","quick","report","set"].forEach(x=>{var nb=$("nav-"+x);if(nb)nb.classList.add("hidden");});
+    $("nav-map").classList.remove("hidden");
+    if(lo){lo.textContent="Đăng nhập";lo.setAttribute("onclick","goLogin()");}
+    showView("map"); return;
+  }
   $("leaderName").textContent=SES.name;
   $("nav-map").classList.remove("hidden");
   $("nav-report").classList.remove("hidden");
   $("nav-quick").classList.remove("hidden");
   $("nav-set").classList.toggle("hidden", SES.role!=="admin");
+  if(lo){lo.textContent="Đăng xuất";lo.setAttribute("onclick","logout()");}
   if(MAP_ONLY){["form","quick","report","set"].forEach(x=>{var nb=$("nav-"+x);if(nb)nb.classList.add("hidden");});}
   buildLineSelect(); buildQuick(); $("inp-ngay").value=todayStr();
   loadFocus(); loadChecklist();
@@ -446,7 +457,7 @@ function mDetail(idx){var f=mData[idx];if(!f)return;window._pf=f;
    +'<div class="dt-row"><span class="dt-k">Mã phiếu</span><span class="mono">'+(f.refCode||"")+'</span></div>';
   if(f.resolved)b+='<div style="margin-top:10px;background:var(--pass-t);border:1px solid #BCE9D5;color:#0A7A54;border-radius:8px;padding:9px 12px;font-size:12.5px">✓ Đã khắc phục'+(f.resolvedAt?' · '+String(f.resolvedAt).slice(0,16).replace("T"," "):'')+'</div>';
   fixPhotoData=null;
-  var mgr=(SES.role==="manager"||SES.role==="admin");
+  var guest=!SES, mgr=(SES&&(SES.role==="manager"||SES.role==="admin"));
   var hasProp=(f.proposed&&(f.fixPhoto||f.fixNote));
   var area='<div class="fix-grid">';
   area+='<div><div class="fix-h">Ảnh lỗi hiện tại</div>'+(f.photo?'<a href="'+f.photo+'" target="_blank" rel="noopener"><img class="fix-img" src="'+f.photo+'" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'📷 <u>Mở ảnh</u>\'"></a>':'<div class="fix-empty">Không có ảnh</div>')+'</div>';
@@ -454,11 +465,12 @@ function mDetail(idx){var f=mData[idx];if(!f)return;window._pf=f;
   if(f.resolved){area+=(f.fixPhoto?'<a href="'+f.fixPhoto+'" target="_blank" rel="noopener"><img class="fix-img" src="'+f.fixPhoto+'" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'"></a>':'')+(f.fixNote?'<div class="fix-note-ro">'+f.fixNote+'</div>':'')+((!f.fixPhoto&&!f.fixNote)?'<div class="fix-empty">—</div>':'');}
   else{
     if(hasProp)area+='<div class="prop-card"><div class="prop-h">🕓 Đề xuất chờ duyệt'+(f.proposedBy?" · "+f.proposedBy:"")+'</div>'+(f.fixPhoto?'<a href="'+f.fixPhoto+'" target="_blank" rel="noopener"><img class="fix-img" src="'+f.fixPhoto+'" referrerpolicy="no-referrer"></a>':'')+(f.fixNote?'<div class="fix-note-ro" style="margin-top:6px">'+f.fixNote+'</div>':'')+'</div>';
-    area+='<div id="fixPhotoWrap"></div><button type="button" class="chipbtn ok" id="fixPhotoBtn" onclick="pickFixPhoto()">📷 <span>'+(hasProp?"Bổ sung/đổi ảnh":"Thêm ảnh")+'</span></button><textarea id="fixNote" class="rvnote" rows="2" style="width:100%;margin-top:8px;border-color:var(--line)" placeholder="'+(mgr?"Chú thích khắc phục...":"Đề xuất cách khắc phục...")+'" oninput="updateResolveBtn()"></textarea>';
+    if(guest)area+='<div class="fix-empty">Đăng nhập để đề xuất / duyệt khắc phục.</div>';
+    else area+='<div id="fixPhotoWrap"></div><button type="button" class="chipbtn ok" id="fixPhotoBtn" onclick="pickFixPhoto()">📷 <span>'+(hasProp?"Bổ sung/đổi ảnh":"Thêm ảnh")+'</span></button><textarea id="fixNote" class="rvnote" rows="2" style="width:100%;margin-top:8px;border-color:var(--line)" placeholder="'+(mgr?"Chú thích khắc phục...":"Đề xuất cách khắc phục...")+'" oninput="updateResolveBtn()"></textarea>';
   }
   area+='</div></div>';
   $("dtTitle").textContent="📍 "+f.line; $("dtBody").innerHTML=b+area;
-  $("dtFoot").innerHTML='<button class="btn btn-g" onclick="closeM(\'dtModal\')">Đóng</button>'+(!f.resolved?'<button class="btn btn-ok" id="resolveBtn" disabled style="opacity:.5" onclick="'+(mgr?"mResolve()":"mPropose()")+'">'+(mgr?"✓ Duyệt khắc phục":"📤 Đề xuất khắc phục")+'</button>':'');
+  $("dtFoot").innerHTML='<button class="btn btn-g" onclick="closeM(\'dtModal\')">Đóng</button>'+(f.resolved?'':(guest?'<button class="btn btn-p" onclick="loginToFix(\''+f.id+'\')">🔑 Đăng nhập để khắc phục</button>':'<button class="btn btn-ok" id="resolveBtn" disabled style="opacity:.5" onclick="'+(mgr?"mResolve()":"mPropose()")+'">'+(mgr?"✓ Duyệt khắc phục":"📤 Đề xuất khắc phục")+'</button>'));
   $("dtModal").classList.add("show");
   updateResolveBtn();
 }
@@ -486,7 +498,7 @@ async function mPropose(){ var f=window._pf;if(!f)return;
     if(r&&r.ok){f.proposed=true;if(url)f.fixPhoto=url;if(note)f.fixNote=note;f.proposedBy=SES.name;closeM("dtModal");mRender();toast("Đã gửi đề xuất khắc phục — chờ duyệt.");}
   }catch(e){toast("Lỗi: "+(e.message||e));if(btn){btn.disabled=false;btn.textContent="📤 Đề xuất khắc phục";}}
 }
-function updateResolveBtn(){var btn=$("resolveBtn");if(!btn)return;var f=window._pf||{};var note=($("fixNote")&&$("fixNote").value.trim())||"";var hasNew=!!fixPhotoData||!!note;var mgr=(SES.role==="manager"||SES.role==="admin");var hasExisting=!!(f.proposed&&(f.fixPhoto||f.fixNote));var ok=hasNew||(mgr&&hasExisting);btn.disabled=!ok;btn.style.opacity=ok?"1":".5";}
+function updateResolveBtn(){var btn=$("resolveBtn");if(!btn)return;var f=window._pf||{};var note=($("fixNote")&&$("fixNote").value.trim())||"";var hasNew=!!fixPhotoData||!!note;var mgr=(SES&&(SES.role==="manager"||SES.role==="admin"));var hasExisting=!!(f.proposed&&(f.fixPhoto||f.fixNote));var ok=hasNew||(mgr&&hasExisting);btn.disabled=!ok;btn.style.opacity=ok?"1":".5";}
 function pickFixPhoto(){var inp=$("fixPhotoInput");inp.value="";inp.click();}
 function clearFixPhoto(){fixPhotoData=null;var w=$("fixPhotoWrap");if(w)w.innerHTML="";var b=$("fixPhotoBtn");if(b)b.querySelector("span").textContent="Thêm ảnh khắc phục";updateResolveBtn();}
 document.addEventListener("DOMContentLoaded",function(){var fi=$("fixPhotoInput");if(!fi)return;fi.addEventListener("change",function(e){var file=e.target.files&&e.target.files[0];if(!file)return;
@@ -586,7 +598,7 @@ async function submitQuick(){
 function resetQuick(){var s=$("q-submit");if(s){s.disabled=false;s.textContent="🚩 Gửi báo cáo điểm nóng";}if($("q-line"))$("q-line").value="";if($("q-dept"))$("q-dept").value="";if($("q-note"))$("q-note").value="";delete flagPos["q"];delete photoData["q"];if($("th-q"))$("th-q").style.display="none";markFB("q");var b=$("pb-q");if(b){b.classList.remove("ok");b.querySelector("span").textContent="Chụp ảnh";}}
 
 (async function(){ if(!sb){ $("lgErr").textContent="Không tải được thư viện Supabase (kiểm tra mạng)."; $("lgErr").style.display="block"; return; }
-  await bootLogin(); await tryRestore(); })();
+  await bootLogin(); await tryRestore(); if(!SES&&MAP_ONLY){enterApp();} })();
 </script>
 </body>
 </html>
