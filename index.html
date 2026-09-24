@@ -93,8 +93,12 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 .m-filters input[type=date]{padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;font-family:var(--mono);font-size:12px}
 .m-scroll{position:relative;overflow:hidden;background:#f1f5f9;border:1px solid var(--line);border-radius:10px}
 #mapCapture #mStats{margin:0;background:#fff;padding:9px 12px;border-bottom:1px solid var(--line);border-radius:0;text-align:left}
-.m-sum-title{width:100%;font-weight:700;font-size:12.5px;color:var(--ink);margin-bottom:3px}
-#mapImg{display:block;height:auto;width:auto;max-width:100%;max-height:calc(100vh - 215px);margin:0 auto}#mapBox{position:relative;display:inline-block;max-width:100%;line-height:0}#mapCapture{text-align:center}
+.m-sum-title{width:100%;font-weight:700;font-size:15px;color:var(--ink);margin-bottom:6px}
+#mapCapture #mStats{align-items:stretch;gap:10px}
+#mapCapture .m-stat{padding:8px 18px;text-align:center;min-width:72px}
+#mapCapture .m-stat .n{display:block;font-size:32px;line-height:1}
+#mapCapture .m-stat .l{display:block;font-size:12px;margin-top:4px}
+#mapImg{position:absolute;top:-74.65%;left:0;width:100%;height:auto;display:block}#mapBox{position:relative;width:100%;height:0;padding-top:27.83%;overflow:hidden}
 .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:2}.pin .dot{width:15px;height:15px;border-radius:50% 50% 50% 0;transform:rotate(45deg);border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.35)}.pin.res{opacity:.5}.pin.res .dot{border-radius:50%;transform:none;background:var(--pass)!important}
 .m-stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .m-stat{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px}.m-stat .n{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--brand)}.m-stat .l{font-size:11px;color:var(--muted)}
@@ -173,9 +177,10 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
           <div class="field"><label class="lbl">Line / Khu vực <span class="req">*</span></label><select class="sel" id="q-line"><option value="">— Chọn line / khu vực —</option></select></div>
           <div class="field"><label class="lbl">Bộ phận chịu trách nhiệm <span class="req">*</span></label><select class="sel" id="q-dept"></select></div>
           <div class="field"><label class="lbl">Chú thích / mô tả vấn đề <span class="req">*</span></label><textarea class="inp" id="q-note" rows="3" placeholder="Mô tả vấn đề cần xử lý..."></textarea></div>
-          <div class="rvacts" style="margin-top:4px">
-            <button type="button" class="chipbtn" id="fb-q" onclick="openFlagQ()">📍 <span>Ghim vị trí</span></button>
-            <button type="button" class="chipbtn" id="pb-q" onclick="pickPhoto('q')">📷 <span>Chụp ảnh</span></button>
+          <div style="font-size:12px;color:var(--fail);font-weight:600;margin-top:6px">* Bắt buộc: ghim vị trí + chụp ảnh vi phạm</div>
+          <div class="rvacts" style="margin-top:6px">
+            <button type="button" class="chipbtn" id="fb-q" onclick="openFlagQ()">📍 <span>Ghim vị trí *</span></button>
+            <button type="button" class="chipbtn" id="pb-q" onclick="pickPhoto('q')">📷 <span>Chụp ảnh *</span></button>
           </div>
           <div class="rvthumb" id="th-q"><img id="thi-q"><button class="rm" onclick="rmPhoto('q')">Xoá ảnh</button></div>
         </div>
@@ -258,6 +263,7 @@ var SES=null, ITEMS=[], CATS=[];
 var pf={}, flagPos={}, photoData={}, flagCur={}, photoCur=null, fixPhotoData=null;
 var mData=[];
 const DEPTS=["PRO","QC","MM","EQM","HR","INNO","Khác"];
+const BAND_Y0=29.38, BAND_Y1=68.74;
 const DEPT_COLORS={PRO:"#DC2626",QC:"#2563EB",MM:"#C77A00",EQM:"#7C3AED",HR:"#0E9F6E",INNO:"#0891B2","Khác":"#5C6B80"};
 function deptColor(d){return DEPT_COLORS[d]||"#94A3B8";}
 function deptOptions(sel){return DEPTS.map(d=>'<option '+(d===sel?"selected":"")+'>'+d+'</option>').join("");}
@@ -441,7 +447,7 @@ async function mLoad(){ $("mList").innerHTML='<div class="spin">Đang tải…</
 function mVisible(){var sh=$("mShowRes").checked;return mData.filter(f=>sh||!f.resolved);}
 function mRender(){ var box=$("mapBox");[...box.querySelectorAll(".pin")].forEach(e=>e.remove());
   var vis=mVisible(),active=mData.filter(f=>!f.resolved);
-  vis.forEach(f=>{if(typeof f.x!=="number"||typeof f.y!=="number")return;var idx=mData.indexOf(f);var pin=document.createElement("div");pin.className="pin"+(f.resolved?" res":"");pin.style.left=f.x+"%";pin.style.top=f.y+"%";pin.innerHTML='<div class="dot" style="background:'+deptColor(f.dept)+'"></div>';pin.onclick=()=>mDetail(idx);box.appendChild(pin);});
+  vis.forEach(f=>{if(typeof f.x!=="number"||typeof f.y!=="number")return;var idx=mData.indexOf(f);var pin=document.createElement("div");pin.className="pin"+(f.resolved?" res":"");pin.style.left=f.x+"%";pin.style.top=((f.y-BAND_Y0)/(BAND_Y1-BAND_Y0)*100)+"%";pin.innerHTML='<div class="dot" style="background:'+deptColor(f.dept)+'"></div>';pin.onclick=()=>mDetail(idx);box.appendChild(pin);});
   var byc={};active.forEach(f=>{var dp=f.dept||"Khác";byc[dp]=(byc[dp]||0)+1;});
   var rng=($("mFrom").value||"đầu")+" → "+($("mTo").value||"nay");
   $("mStats").innerHTML='<div class="m-sum-title">🚩 Điểm nóng theo bộ phận · '+rng+'</div><div class="m-stat"><span class="n">'+active.length+'</span> <span class="l">điểm cần xử lý</span></div>'+Object.entries(byc).sort((a,b)=>b[1]-a[1]).map(([c,n])=>'<div class="m-stat"><span class="n" style="color:'+deptColor(c)+'">'+n+'</span> <span class="l">'+c+'</span></div>').join("");
@@ -585,9 +591,13 @@ function buildQuick(){
 function openFlagQ(){var line=val("q-line");if(!line){toast("Chọn Line trước khi ghim");return;}openFlag("q",line);}
 async function submitQuick(){
   var line=val("q-line"),dept=val("q-dept"),note=val("q-note");
-  if(!line||!dept||!note){toast("Cần chọn Line, Bộ phận và điền Chú thích");return;}
+  if(!line){toast("Chọn Line / khu vực");return;}
+  if(!dept){toast("Chọn bộ phận chịu trách nhiệm");return;}
+  if(!note){toast("Nhập chú thích / mô tả vi phạm");return;}
+  if(!flagPos["q"]){toast("Bấm 📍 Ghim vị trí trên bản đồ");return;}
+  if(!photoData["q"]){toast("Bấm 📷 Chụp ảnh — báo cáo bắt buộc có ảnh vi phạm");return;}
   var btn=$("q-submit");btn.disabled=true;btn.textContent="Đang gửi…";
-  var refCode=genRef(),p=flagPos["q"]||zoneCenter(line)||{},photo="";
+  var refCode=genRef(),p=flagPos["q"],photo="";
   try{
     if(photoData["q"]){var path=refCode+"/q.jpg",up=await sb.storage.from("photos").upload(path,dataURLtoBlob(photoData["q"]),{contentType:"image/jpeg",upsert:true});if(!up.error)photo=sb.storage.from("photos").getPublicUrl(path).data.publicUrl;}
     var payload={ref_code:refCode,ngay:todayStr(),ca:"Báo nhanh",line:line,tong_dat:0,tong_khong_dat:1,results:[],flags:[{cat:"Điểm nóng",text:note,note:"",x:p.x,y:p.y,photo:photo,dept:dept}]};
