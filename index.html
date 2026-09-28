@@ -251,10 +251,11 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 
       <div class="s-card"><div class="s-h"><span>Người dùng (leader / quản lý / admin)</span></div>
         <div class="s-b">
-          <div style="overflow-x:auto"><table class="tbl" id="usrTbl"><thead><tr><th>Tên</th><th>Vai trò</th><th>Mật khẩu mới</th><th>Bật</th><th></th></tr></thead><tbody id="usrBody"></tbody></table></div>
+          <div style="overflow-x:auto"><table class="tbl" id="usrTbl"><thead><tr><th>Tên</th><th>Vai trò</th><th>Part</th><th>Mật khẩu mới</th><th>Bật</th><th></th></tr></thead><tbody id="usrBody"></tbody></table></div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="inp" id="nuName" placeholder="Tên mới" style="width:auto;flex:1;min-width:120px">
             <select class="sel" id="nuRole" style="width:auto"><option value="leader">leader</option><option value="manager">manager</option><option value="group_leader">group_leader</option><option value="admin">admin</option></select>
+            <select class="sel" id="nuPart" style="width:auto"><option value="">— Part —</option><option>Ban quản lý</option><option>PRO</option><option>QC</option><option>MM</option><option>EQM</option><option>HR</option><option>INNO</option></select>
             <input class="inp mono" id="nuPin" placeholder="Mật khẩu" style="width:120px">
             <button class="btn btn-p" onclick="addUser()">+ Thêm người</button>
           </div>
@@ -290,6 +291,9 @@ const BAND_Y0=29.38, BAND_Y1=68.74;
 const DEPT_COLORS={PRO:"#DC2626",QC:"#2563EB",MM:"#C77A00",EQM:"#7C3AED",HR:"#0E9F6E",INNO:"#0891B2","Khác":"#5C6B80"};
 function deptColor(d){return DEPT_COLORS[d]||"#94A3B8";}
 function deptOptions(sel){return DEPTS.map(d=>'<option '+(d===sel?"selected":"")+'>'+d+'</option>').join("");}
+const PART_OPTS=["Ban quản lý","PRO","QC","MM","EQM","HR","INNO"];
+function partOptions(sel){return '<option value="">— Part —</option>'+PART_OPTS.map(p=>'<option '+(p===sel?"selected":"")+'>'+p+'</option>').join("");}
+function deptOptionsFor(sel){var own=(SES&&SES.part&&SES.part!=="Ban quản lý")?SES.part:null;return DEPTS.filter(d=>d!==own).map(d=>'<option '+(d===sel?"selected":"")+'>'+d+'</option>').join("");}
 const $=id=>document.getElementById(id);
 var MAP_ONLY=(new URLSearchParams(location.search).get("mode")==="map")||location.hash==="#map";
 const val=id=>{var e=$(id);return e?e.value.trim():"";};
@@ -308,7 +312,7 @@ async function bootLogin(){
 }
 async function tryRestore(){
   try{ SES=JSON.parse(localStorage.getItem("pro001_ses")||"null"); }catch(e){ SES=null; }
-  if(SES&&SES.token&&sb){ try{ var w=await rpc("whoami",{p_token:SES.token}); if(w){ SES.name=w.name;SES.role=w.role; return enterApp(); } }catch(e){} }
+  if(SES&&SES.token&&sb){ try{ var w=await rpc("whoami",{p_token:SES.token}); if(w){ SES.name=w.name;SES.role=w.role;SES.part=w.part||""; return enterApp(); } }catch(e){} }
   SES=null; localStorage.removeItem("pro001_ses");
 }
 async function doLogin(){
@@ -318,7 +322,7 @@ async function doLogin(){
   try{
     var res=await rpc("login",{p_name:name,p_pin:pin});
     if(!res){ $("lgErr").textContent="Sai tên hoặc PIN."; $("lgErr").style.display="block"; return; }
-    SES={token:res.token,name:res.name,role:res.role};
+    SES={token:res.token,name:res.name,role:res.role,part:res.part||""};
     localStorage.setItem("pro001_ses",JSON.stringify(SES));
     enterApp();
     if(window._pendingFlagId){var pid=window._pendingFlagId;window._pendingFlagId=null;try{await mLoad();}catch(_e){}var i=mData.findIndex(x=>x.id===pid);if(i>=0)mDetail(i);}
@@ -391,7 +395,7 @@ function renderChecklist(){
       +'<div class="item-top"><div class="item-txt">'+(it.focus?'<span class="focus-tag">TRỌNG TÂM</span>':'')+it.text+'</div>'
       +'<div class="seg"><button type="button" onclick="rate(\''+it.id+'\',1)" id="p-'+it.id+'">Đạt</button><button type="button" onclick="rate(\''+it.id+'\',0)" id="n-'+it.id+'">Không đạt</button></div></div>'
       +'<div class="reveal" id="rv-'+it.id+'"><input class="rvnote" id="note-'+it.id+'" placeholder="Vị trí + xử lý (bắt buộc) *">'
-      +'<div style="margin-top:9px;display:flex;align-items:center;gap:8px;font-size:12.5px"><span style="color:var(--muted);font-weight:600">Bộ phận:</span><select id="dept-'+it.id+'" style="padding:6px 9px;border:1.5px solid #E6B9B9;border-radius:8px;font-family:inherit;font-size:12.5px">'+deptOptions(it.dept)+'</select></div>'
+      +'<div style="margin-top:9px;display:flex;align-items:center;gap:8px;font-size:12.5px"><span style="color:var(--muted);font-weight:600">Bộ phận:</span><select id="dept-'+it.id+'" style="padding:6px 9px;border:1.5px solid #E6B9B9;border-radius:8px;font-family:inherit;font-size:12.5px">'+deptOptionsFor(it.dept)+'</select></div>'
       +'<div class="rvacts"><button type="button" class="chipbtn" id="fb-'+it.id+'" onclick="openFlag(\''+it.id+'\')">📍 <span>Đánh dấu vị trí</span></button>'
       +'<button type="button" class="chipbtn" id="pb-'+it.id+'" onclick="pickPhoto(\''+it.id+'\')">📷 <span>Chụp ảnh</span></button></div>'
       +'<div class="rvthumb" id="th-'+it.id+'"><img id="thi-'+it.id+'"><button class="rm" onclick="rmPhoto(\''+it.id+'\')">Xoá ảnh</button></div></div></div></div>'; });
@@ -597,15 +601,17 @@ async function saveFocusNote(){try{await rpc("set_setting",{p_token:SES.token,p_
 async function loadUsers(){ try{var u=await rpc("list_users",{p_token:SES.token});$("usrBody").innerHTML=(u||[]).map(x=>'<tr>'
   +'<td class="mono">'+esc(x.name)+'</td>'
   +'<td><select onchange="setUser(\''+esc(x.name)+'\',\'role\',this.value)"><option '+(x.role=="leader"?"selected":"")+'>leader</option><option '+(x.role=="manager"?"selected":"")+'>manager</option><option '+(x.role=="group_leader"?"selected":"")+'>group_leader</option><option '+(x.role=="admin"?"selected":"")+'>admin</option></select></td>'
+  +'<td><select onchange="setPart(\''+esc(x.name)+'\',this.value)">'+partOptions(x.part||"")+'</select></td>'
   +'<td><input type="text" class="mono" placeholder="(giữ nguyên)" id="pin-'+esc(x.name)+'" style="width:100px"> <button class="minibtn" onclick="resetPin(\''+esc(x.name)+'\')">Đặt</button></td>'
   +'<td style="text-align:center"><input type="checkbox" '+(x.active?"checked":"")+' onchange="setUser(\''+esc(x.name)+'\',\'active\',this.checked)"></td>'
-  +'<td><button class="minibtn del" onclick="delUser(\''+esc(x.name)+'\')">Xoá</button></td></tr>').join("");}catch(e){$("usrBody").innerHTML='<tr><td colspan=5 style="color:var(--fail)">'+(e.message||e)+'</td></tr>';}}
+  +'<td><button class="minibtn del" onclick="delUser(\''+esc(x.name)+'\')">Xoá</button></td></tr>').join("");}catch(e){$("usrBody").innerHTML='<tr><td colspan=6 style="color:var(--fail)">'+(e.message||e)+'</td></tr>';}}
+async function setPart(name,part){try{await rpc("set_user_part",{p_token:SES.token,p_name:name,p_part:part});toast("Đã đặt Part cho "+name+".");}catch(e){toast("Lỗi: "+(e.message||e));loadUsers();}}
 async function setUser(name,field,value){ var args={p_token:SES.token,p_name:name,p_role:null,p_pin:null,p_active:null}; args["p_"+field]=value;
   try{await rpc("save_user",args);toast("Đã cập nhật "+name+".");}catch(e){toast("Lỗi: "+(e.message||e));loadUsers();}}
 async function resetPin(name){ var el=$("pin-"+name),pin=el?el.value.trim():""; if(!pin){toast("Nhập mật khẩu mới");return;}
   try{await rpc("save_user",{p_token:SES.token,p_name:name,p_role:null,p_pin:pin,p_active:null});el.value="";toast("Đã đổi mật khẩu cho "+name+".");}catch(e){toast("Lỗi: "+(e.message||e));}}
 async function addUser(){ var name=val("nuName"),role=$("nuRole").value,pin=val("nuPin"); if(!name||!pin){toast("Nhập tên và mật khẩu");return;}
-  try{await rpc("save_user",{p_token:SES.token,p_name:name,p_role:role,p_pin:pin,p_active:true});$("nuName").value="";$("nuPin").value="";toast("Đã thêm "+name+".");loadUsers();}catch(e){toast("Lỗi: "+(e.message||e));}}
+  try{await rpc("save_user",{p_token:SES.token,p_name:name,p_role:role,p_pin:pin,p_active:true});var pt=$("nuPart").value;if(pt)await rpc("set_user_part",{p_token:SES.token,p_name:name,p_part:pt});$("nuName").value="";$("nuPin").value="";$("nuPart").value="";toast("Đã thêm "+name+".");loadUsers();}catch(e){toast("Lỗi: "+(e.message||e));}}
 async function delUser(name){ if(!confirm("Xoá tài khoản "+name+"?"))return; try{var r=await rpc("delete_user",{p_token:SES.token,p_name:name});if(r&&r.ok){toast("Đã xoá "+name+".");loadUsers();}}catch(e){toast("Lỗi: "+(e.message||e));}}
 
 function _weekStart(d){var dt=new Date(d+"T00:00:00");var day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);var p=n=>String(n).padStart(2,"0");return dt.getFullYear()+"-"+p(dt.getMonth()+1)+"-"+p(dt.getDate());}
@@ -681,7 +687,7 @@ function snapReport(){snapEl($("reportCard"),"bao-cao-di-tuan.png","Báo cáo đ
 
 function buildQuick(){
   var ls=$("q-line"); if(ls&&!ls.dataset.built){ls.dataset.built="1";Object.keys(LINE_OPTS).forEach(g=>{var og=document.createElement("optgroup");og.label=g;LINE_OPTS[g].forEach(o=>{var op=document.createElement("option");op.textContent=o;og.appendChild(op);});ls.appendChild(og);});}
-  var ds=$("q-dept"); if(ds&&!ds.dataset.built){ds.dataset.built="1";ds.innerHTML='<option value="">— Chọn bộ phận —</option>'+DEPTS.map(d=>'<option>'+d+'</option>').join("");}
+  var ds=$("q-dept"); if(ds&&!ds.dataset.built){ds.dataset.built="1";ds.innerHTML='<option value="">— Chọn bộ phận —</option>'+deptOptionsFor("");}
 }
 function openFlagQ(){var line=val("q-line");if(!line){toast("Chọn Line trước khi ghim");return;}openFlag("q",line);}
 async function submitQuick(){
