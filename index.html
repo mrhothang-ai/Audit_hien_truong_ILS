@@ -115,7 +115,7 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 #view-set .s-wrap{max-width:900px;margin:0 auto;padding:14px}
 .s-card{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:16px;overflow:hidden}
 .s-h{padding:11px 14px;border-bottom:1px solid var(--line2);font-weight:700;font-size:14px;background:linear-gradient(180deg,#fff,#FbFcFe);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.s-b{padding:14px}
+.s-b{padding:14px}.s-b.collapsed{display:none}.chev{cursor:pointer;color:var(--muted);font-size:15px;font-weight:700;user-select:none;margin-left:auto}
 .tbl{width:100%;border-collapse:collapse;font-size:12.5px}.tbl th{text-align:left;padding:7px 8px;font-size:10.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}.tbl td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:middle}
 .tbl input[type=text],.tbl input[type=number],.tbl select{width:100%;padding:6px 7px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:12.5px}
 .tbl input[type=text].w{min-width:180px}
@@ -213,26 +213,22 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 
   <div id="view-report" class="hidden">
     <div class="s-wrap">
-      <div class="s-card">
-        <div class="s-h"><span>📅 Lịch kiểm tra theo tuần</span></div>
-        <div class="s-b">
-          <div id="schedThisWeek" class="banner" style="margin-bottom:12px">—</div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Tuần</th><th>PLD phụ trách</th><th>Ghi chú</th><th></th></tr></thead><tbody id="schedBody"></tbody></table></div>
-          <div id="schedAdd" class="hidden" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <input type="date" id="schWeek" class="inp" style="width:auto">
-            <select class="sel" id="schPld" style="width:auto"><option value="">— PLD —</option></select>
-            <input type="text" id="schNote" class="inp" placeholder="Ghi chú (tùy chọn)" style="width:auto;flex:1;min-width:120px">
-            <button class="btn btn-p" onclick="saveSchedule()">+ Lưu lịch tuần</button>
+      <div id="repSnap">
+        <div class="s-card">
+          <div class="s-h"><span id="b1title">① Tổng hợp Quý</span>
+            <span style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
+              <button class="minibtn scope on" data-s="q" onclick="setScope('q')">Quý</button>
+              <button class="minibtn scope" data-s="m" onclick="setScope('m')">Tháng</button>
+              <button class="minibtn scope" data-s="w" onclick="setScope('w')">Tuần</button>
+              <button class="btn btn-p" style="padding:6px 10px" onclick="snapReport()">📸 Chụp</button>
+            </span>
           </div>
+          <div class="s-b" id="b1body"><div class="spin">Đang tải…</div></div>
         </div>
-      </div>
-      <div class="m-filters">
-        <label>Từ</label><input type="date" id="rFrom"><label>đến</label><input type="date" id="rTo">
-        <button class="minibtn" onclick="loadReport()">Lọc</button><button class="minibtn" onclick="rAll()">Tất cả</button>
-        <button class="btn btn-p" style="margin-left:auto;padding:7px 11px" onclick="snapReport()">📸 Chụp gửi Zalo</button>
-      </div>
-      <div id="reportCard" class="s-card"><div class="s-h"><span id="rTitle">Báo cáo kiểm tra</span></div>
-        <div class="s-b" id="rBody"><div class="spin">Đang tải…</div></div>
+        <div class="s-card"><div class="s-h"><span id="b2title">② Đi tuần tuần này</span></div>
+          <div class="s-b" id="b2body"></div></div>
+        <div class="s-card"><div class="s-h"><span id="b3title">③ Hiện trạng hôm nay</span></div>
+          <div class="s-b" id="b3body"></div></div>
       </div>
       <div id="evalAdd" class="hidden" style="text-align:right;margin-bottom:16px"><button class="btn btn-ok" onclick="saveEval()">💾 Lưu kỳ đánh giá</button></div>
     </div>
@@ -240,17 +236,22 @@ body{font-family:var(--sans);background:linear-gradient(180deg,#EEF3F9,#E4EBF3);
 
   <div id="view-set" class="hidden">
     <div class="s-wrap">
-      <div class="s-card"><div class="s-h"><span>Đợt trọng tâm (banner đầu form)</span></div>
-        <div class="s-b"><input class="inp" id="setFocusNote" placeholder="VD: Tuần này tập trung an toàn dây điện & hoá chất"><button class="btn btn-p" style="margin-top:10px" onclick="saveFocusNote()">Lưu banner</button></div></div>
+      <div class="s-card"><div class="s-h"><span>⚙️ Ngưỡng &amp; giới hạn</span><span class="chev" onclick="accTog(this)">▾</span></div>
+        <div class="s-b collapsed">
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end"><div><label class="lbl">Giới hạn vấn đề tồn / Part</label><input class="inp" id="setMaxPending" type="number" style="width:130px"></div><div><label class="lbl">Mục tiêu vấn đề / ngày</label><input class="inp" id="setDailyGoal" type="number" style="width:130px"></div><button class="btn btn-p" onclick="saveThresholds()">Lưu ngưỡng</button></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px">Part đủ giới hạn tồn sẽ bị chặn tạo cờ mới. Ngày đi tuần &lt; mục tiêu bị trừ 10 điểm/ngày.</div>
+        </div></div>
+      <div class="s-card"><div class="s-h"><span>Đợt trọng tâm (banner đầu form)</span><span class="chev" onclick="accTog(this)">▾</span></div>
+        <div class="s-b collapsed"><input class="inp" id="setFocusNote" placeholder="VD: Tuần này tập trung an toàn dây điện & hoá chất"><button class="btn btn-p" style="margin-top:10px" onclick="saveFocusNote()">Lưu banner</button></div></div>
 
-      <div class="s-card"><div class="s-h"><span>Checklist</span><span><button class="minibtn" onclick="csvExport()">⬇ CSV</button> <button class="minibtn" onclick="document.getElementById('csvFile').click()">⬆ CSV</button> <input type="file" id="csvFile" accept=".csv,text/csv" class="hidden"></span></div>
-        <div class="s-b">
+      <div class="s-card"><div class="s-h"><span>Checklist</span><span class="chev" onclick="accTog(this)">▾</span><span><button class="minibtn" onclick="csvExport()">⬇ CSV</button> <button class="minibtn" onclick="document.getElementById('csvFile').click()">⬆ CSV</button> <input type="file" id="csvFile" accept=".csv,text/csv" class="hidden"></span></div>
+        <div class="s-b collapsed">
           <div style="overflow-x:auto"><table class="tbl" id="clTbl"><thead><tr><th>Nhóm</th><th>Nội dung</th><th>Bộ phận</th><th>Trọng tâm</th><th>Bật</th><th></th></tr></thead><tbody id="clBody"></tbody></table></div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="minibtn" onclick="clAddRow()">+ Thêm mục</button><button class="btn btn-ok" onclick="saveChecklist()">Lưu checklist</button></div>
         </div></div>
 
-      <div class="s-card"><div class="s-h"><span>Người dùng (leader / quản lý / admin)</span></div>
-        <div class="s-b">
+      <div class="s-card"><div class="s-h"><span>Người dùng</span><span class="chev" onclick="accTog(this)">▾</span></div>
+        <div class="s-b collapsed">
           <div style="overflow-x:auto"><table class="tbl" id="usrTbl"><thead><tr><th>Tên</th><th>Vai trò</th><th>Part</th><th>Mật khẩu mới</th><th>Bật</th><th></th></tr></thead><tbody id="usrBody"></tbody></table></div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="inp" id="nuName" placeholder="Tên mới" style="width:auto;flex:1;min-width:120px">
@@ -575,7 +576,10 @@ document.addEventListener("DOMContentLoaded",function(){var fi=$("fixPhotoInput"
     var b=$("fixPhotoBtn");if(b)b.querySelector("span").textContent="Chụp/chọn lại";updateResolveBtn();};img.src=ev.target.result;};rd.readAsDataURL(file);});});
 
 var clRows=[];
+function accTog(el){var b=el.closest(".s-h").nextElementSibling;if(b){b.classList.toggle("collapsed");el.textContent=b.classList.contains("collapsed")?"▾":"▴";}}
+async function saveThresholds(){try{await rpc("set_setting",{p_token:SES.token,p_k:"max_pending",p_v:($("setMaxPending").value||"20")});await rpc("set_setting",{p_token:SES.token,p_k:"daily_goal",p_v:($("setDailyGoal").value||"10")});toast("Đã lưu ngưỡng.");}catch(e){toast("Lỗi: "+(e.message||e));}}
 async function loadSettings(){
+  try{var a=await sb.from("settings").select("v").eq("k","max_pending").maybeSingle();if($("setMaxPending"))$("setMaxPending").value=(a.data&&a.data.v)||"20";var b2=await sb.from("settings").select("v").eq("k","daily_goal").maybeSingle();if($("setDailyGoal"))$("setDailyGoal").value=(b2.data&&b2.data.v)||"10";}catch(e){}
   try{var s=await sb.from("settings").select("v").eq("k","focus_note").maybeSingle();$("setFocusNote").value=(s.data&&s.data.v)||"";}catch(e){}
   try{var d=await sb.from("checklist_items").select("*").order("sort");clRows=(d.data||[]).map(r=>({grp_no:r.grp_no||"",grp:r.grp||"",dept:r.dept||"",txt:r.txt||"",focus:!!r.focus,active:r.active!==false}));renderCl();}catch(e){$("clBody").innerHTML='<tr><td colspan=5 style="color:var(--fail)">'+(e.message||e)+'</td></tr>';}
   loadUsers();
@@ -630,45 +634,67 @@ async function delSchedule(wk){if(!confirm("Xoá lịch tuần "+wk+"?"))return;
 async function saveEval(){if(!LAST_REPORT){toast("Chưa có số liệu");return;}var label=prompt("Tên kỳ đánh giá (vd: Quý 3/2026):");if(!label)return;try{await rpc("save_eval",{p_token:SES.token,p_label:label,p_data:LAST_REPORT});toast("Đã lưu kỳ: "+label);}catch(e){toast("Lỗi: "+(e.message||e));}}
 function rAll(){$("rFrom").value="";$("rTo").value="";loadReport();}
 function initReportDates(){var to=new Date(),from=new Date();from.setDate(to.getDate()-90);var p=n=>String(n).padStart(2,"0");$("rTo").value=to.getFullYear()+"-"+p(to.getMonth()+1)+"-"+p(to.getDate());$("rFrom").value=from.getFullYear()+"-"+p(from.getMonth()+1)+"-"+p(from.getDate());loadReport._init=true;}
+function _ymd(dt){var p=n=>String(n).padStart(2,"0");return dt.getFullYear()+"-"+p(dt.getMonth()+1)+"-"+p(dt.getDate());}
+function quarterStart(){var d=new Date();return _ymd(new Date(d.getFullYear(),Math.floor(d.getMonth()/3)*3,1));}
+function monthStart(){var d=new Date();return _ymd(new Date(d.getFullYear(),d.getMonth(),1));}
+function setScope(s){window._rscope=s;[...document.querySelectorAll(".scope")].forEach(b=>b.classList.toggle("on",b.dataset.s===s));loadReport();}
 async function loadReport(){
-  if(!loadReport._init)initReportDates();
   await loadSchedule();
-  var from=$("rFrom").value,to=$("rTo").value;$("rBody").innerHTML='<div class="spin">Đang tải…</div>';
+  var today=todayStr(), qs=quarterStart(), mon=_weekStart(today), scope=window._rscope||"q";
+  var scStart= scope==="w"?mon : (scope==="m"?monthStart():qs);
+  $("b1body").innerHTML='<div class="spin">Đang tải…</div>';
   try{
-    var fq=sb.from("flags").select("dept,resolved,ngay,created_at,resolved_at,urgent");if(from)fq=fq.gte("ngay",from);if(to)fq=fq.lte("ngay",to);
-    var wq=sb.from("walkthroughs").select("ngay,ca");if(from)wq=wq.gte("ngay",from);if(to)wq=wq.lte("ngay",to);
-    var fr=await fq;if(fr.error)throw fr.error;var flags=fr.data||[];
-    var wr=await wq;if(wr.error)throw wr.error;var wts=wr.data||[];
-    var wk={};function bk(k){if(!wk[k])wk[k]={audit:0,quick:0,issues:0};return wk[k];}
-    wts.forEach(w=>{var k=_weekStart(w.ngay),b=bk(k);if((w.ca||"")==="Báo nhanh")b.quick++;else b.audit++;});
-    flags.forEach(f=>bk(_weekStart(f.ngay)).issues++);
-    var weeks=Object.keys(wk).sort().reverse();
-    var wbody='<div style="font-weight:700;font-size:13px;margin-bottom:6px">Theo tuần / PLD</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Tuần</th><th>PLD</th><th style="text-align:right">Lượt Audit</th><th style="text-align:right">Báo nhanh</th><th style="text-align:right">Vấn đề</th></tr></thead><tbody>';
-    if(!weeks.length)wbody+='<tr><td colspan=5 style="color:var(--muted)">Chưa có dữ liệu.</td></tr>';
-    weeks.forEach(k=>{var b=wk[k],s=SCHED[k];wbody+='<tr><td class="mono">'+k+' → '+_addDays(k,6)+'</td><td>'+((s&&s.pld)||"—")+'</td><td style="text-align:right">'+b.audit+'</td><td style="text-align:right">'+b.quick+'</td><td style="text-align:right;font-weight:700">'+b.issues+'</td></tr>';});
-    wbody+='</tbody></table></div>';
-    var agg={};DEPTS.forEach(dp=>agg[dp]={open:0,res:0});
-    flags.forEach(r=>{var dp=r.dept||"Khác";if(!agg[dp])agg[dp]={open:0,res:0};if(r.resolved)agg[dp].res++;else agg[dp].open++;});
-    var totO=0,totR=0,partData={},dbody='<div style="font-weight:700;font-size:13px;margin:16px 0 6px">Theo bộ phận (Part)</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Bộ phận</th><th style="text-align:right">Đang mở</th><th style="text-align:right">Đã khắc phục</th><th style="text-align:right">Tổng</th></tr></thead><tbody>';
-    Object.keys(agg).forEach(dp=>{var a=agg[dp],t=a.open+a.res;if(!t)return;totO+=a.open;totR+=a.res;partData[dp]={open:a.open,res:a.res,total:t};
-      dbody+='<tr><td><span class="badge" style="background:'+deptColor(dp)+'">'+dp+'</span></td><td style="text-align:right;font-weight:700;color:var(--fail)">'+a.open+'</td><td style="text-align:right;color:var(--pass)">'+a.res+'</td><td style="text-align:right" class="mono">'+t+'</td></tr>';});
-    dbody+='<tr style="border-top:2px solid var(--line)"><td><b>Tổng cộng</b></td><td style="text-align:right;font-weight:700;color:var(--fail)">'+totO+'</td><td style="text-align:right;color:var(--pass)">'+totR+'</td><td style="text-align:right" class="mono"><b>'+(totO+totR)+'</b></td></tr></tbody></table></div>';
-    var totAudit=Object.values(wk).reduce((s,b)=>s+b.audit,0),totQuick=Object.values(wk).reduce((s,b)=>s+b.quick,0);
-    var head='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"><div class="m-stat"><span class="n">'+totAudit+'</span> <span class="l">lượt Audit</span></div><div class="m-stat"><span class="n">'+totQuick+'</span> <span class="l">báo nhanh</span></div><div class="m-stat"><span class="n">'+(totO+totR)+'</span> <span class="l">vấn đề</span></div><div class="m-stat"><span class="n" style="color:var(--fail)">'+totO+'</span> <span class="l">đang mở</span></div></div>';
-    var parts={};DEPTS.forEach(d=>parts[d]={pts:0,fast:0,ontime:0,late:0,severe:0,overdue:0,needCM:0});
-    var wOver=0,wCM=0,wPts=0;
-    flags.forEach(fr=>{var sc=scoreFlag({urgent:fr.urgent,resolved:fr.resolved,createdAt:fr.created_at,resolvedAt:fr.resolved_at});var dp=fr.dept||"Khác";if(!parts[dp])parts[dp]={pts:0,fast:0,ontime:0,late:0,severe:0,overdue:0,needCM:0};var P=parts[dp];P.pts+=sc.points;wPts+=sc.points;if(sc.status==="severe")P.severe++;else if(sc.status==="late")P.late++;else if(sc.points===2)P.fast++;else P.ontime++;if(sc.overdue){P.overdue++;wOver++;}if(sc.needsCM){P.needCM++;wCM++;}});
-    var scoreBody='';
-    if(wOver||wCM)scoreBody+='<div style="background:#fdeaea;border:1px solid #f3b0b0;color:#b91c1c;border-radius:9px;padding:10px 12px;font-weight:600;margin-bottom:12px">⚠️ '+wOver+' vấn đề đang quá hạn'+(wCM?' · '+wCM+' cần đối sách':'')+' · Tổng điểm kỳ: '+(wPts>0?"+":"")+wPts+'</div>';
-    scoreBody+='<div style="font-weight:700;font-size:13px;margin:6px 0 6px">Chấm điểm theo Part (thời gian khắc phục)</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Bộ phận</th><th style="text-align:right">Điểm</th><th style="text-align:right">Nhanh</th><th style="text-align:right">Đúng hạn</th><th style="text-align:right">Trễ</th><th style="text-align:right">Nặng</th><th style="text-align:right">Quá hạn</th></tr></thead><tbody>';
-    var anyP=false;
-    Object.keys(parts).forEach(dp=>{var P=parts[dp],tt=P.fast+P.ontime+P.late+P.severe;if(!tt)return;anyP=true;var pc=P.pts>0?"var(--pass)":(P.pts<0?"#b91c1c":"var(--ink)");scoreBody+='<tr><td><span class="badge" style="background:'+deptColor(dp)+'">'+dp+'</span></td><td style="text-align:right;font-weight:700;color:'+pc+'">'+(P.pts>0?"+":"")+P.pts+'</td><td style="text-align:right">'+P.fast+'</td><td style="text-align:right">'+P.ontime+'</td><td style="text-align:right;color:#C77A00">'+P.late+'</td><td style="text-align:right;color:#b91c1c">'+P.severe+'</td><td style="text-align:right;font-weight:700;color:'+(P.overdue?"#b91c1c":"var(--muted)")+'">'+P.overdue+'</td></tr>';});
-    if(!anyP)scoreBody+='<tr><td colspan=7 style="color:var(--muted)">Chưa có dữ liệu.</td></tr>';
-    scoreBody+='</tbody></table><div style="font-size:11px;color:var(--muted);margin-top:6px">Thang điểm mỗi vấn đề: ≤½ hạn <b>+2</b> · trong hạn <b>+1</b> · trễ (hạn→2×hạn) <b>−3</b> · quá 2×hạn <b>−6</b>. Hạn khắc phục: thường <b>4h</b>, cờ GẤP <b>2h</b>. Tính liên tục 24/7.</div></div>';
-    $("rTitle").textContent='Báo cáo kiểm tra · '+(from||"đầu")+" → "+(to||"nay");
-    $("rBody").innerHTML=head+scoreBody+wbody+dbody;
-    LAST_REPORT={period:{from:from||null,to:to||null},totals:{audit:totAudit,quick:totQuick,issues:totO+totR,open:totO,resolved:totR},scoring:{points:wPts,overdue:wOver,needCM:wCM,parts:parts},byWeek:wk,byPart:partData,savedAt:new Date().toISOString()};
-  }catch(e){$("rBody").innerHTML='<div class="spin" style="color:var(--fail)">Lỗi: '+(e.message||e)+'</div>';}
+    var gd=await sb.from("settings").select("v").eq("k","daily_goal").maybeSingle();
+    var goal=parseInt((gd.data&&gd.data.v)||"10")||10;
+    var fq=await sb.from("flags").select("dept,resolved,ngay,created_at,resolved_at,urgent").gte("ngay",qs);
+    var wq=await sb.from("walkthroughs").select("ngay,ca").gte("ngay",qs);
+    if(fq.error)throw fq.error; if(wq.error)throw wq.error;
+    var flags=fq.data||[], wts=wq.data||[];
+    var d=new Date();$("b1title").textContent="① Tổng hợp "+(scope==="w"?"Tuần này":(scope==="m"?"Tháng này":"Quý "+(Math.floor(d.getMonth()/3)+1)+"/"+d.getFullYear()));
+    renderB1(flags,scStart,today,scope,goal);
+    renderB2(flags,wts,mon,today,goal);
+    renderB3(flags,wts,today);
+  }catch(e){$("b1body").innerHTML='<div class="spin" style="color:var(--fail)">Lỗi: '+(e.message||e)+'</div>';}
+}
+function renderB1(flags,from,to,scope,goal){
+  var parts={},over=0,cm=0;
+  flags.forEach(fr=>{if(fr.ngay<from||fr.ngay>to)return;var sc=scoreFlag({urgent:fr.urgent,resolved:fr.resolved,createdAt:fr.created_at,resolvedAt:fr.resolved_at});var dp=fr.dept||"Khác";parts[dp]=parts[dp]||{fix:0,pen:0,found:0};var P=parts[dp];P.found++;P.fix+=sc.points;if(sc.overdue)over++;if(sc.needsCM)cm++;});
+  var byDay={};flags.forEach(f=>{if(f.ngay>=from&&f.ngay<=to)byDay[f.ngay]=(byDay[f.ngay]||0)+1;});
+  var uPen=0,uDays=0,d=from;
+  while(d<to){var s=SCHED[_weekStart(d)],cnt=byDay[d]||0;if(cnt<goal){var pt=(s&&s.part);if(pt){parts[pt]=parts[pt]||{fix:0,pen:0,found:0};parts[pt].pen-=10;}else{uPen-=10;uDays++;}}d=_addDays(d,1);}
+  var totFix=0,totPen=0,rows="",keys=DEPTS.concat(Object.keys(parts).filter(k=>DEPTS.indexOf(k)<0));
+  keys.forEach(dp=>{var P=parts[dp];if(!P||(!P.found&&!P.pen))return;var tot=P.fix+P.pen;totFix+=P.fix;totPen+=P.pen;var pc=tot>0?"var(--pass)":(tot<0?"#b91c1c":"var(--ink)");
+    rows+='<tr><td><span class="badge" style="background:'+deptColor(dp)+'">'+dp+'</span></td><td style="text-align:right">'+(P.found||0)+'</td><td style="text-align:right;color:'+(P.fix>=0?"var(--pass)":"#b91c1c")+'">'+(P.fix>0?"+":"")+P.fix+'</td><td style="text-align:right;color:#b91c1c">'+(P.pen<0?P.pen:"—")+'</td><td style="text-align:right;font-weight:700;color:'+pc+'">'+(tot>0?"+":"")+tot+'</td></tr>';});
+  var warn=(over||cm)?'<div style="background:#fdeaea;border:1px solid #f3b0b0;color:#b91c1c;border-radius:9px;padding:9px 12px;font-weight:600;margin-bottom:10px">⚠️ '+over+' đang quá hạn'+(cm?' · '+cm+' cần đối sách':'')+'</div>':'';
+  var html=warn+'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Part</th><th style="text-align:right">Phát hiện</th><th style="text-align:right">Điểm KP</th><th style="text-align:right">Thiếu ngày</th><th style="text-align:right">Tổng</th></tr></thead><tbody>'+(rows||'<tr><td colspan=5 style="color:var(--muted)">Chưa có dữ liệu.</td></tr>')+'<tr style="border-top:2px solid var(--line)"><td><b>Tổng</b></td><td></td><td style="text-align:right">'+(totFix>0?"+":"")+totFix+'</td><td style="text-align:right;color:#b91c1c">'+(totPen<0?totPen:"—")+'</td><td style="text-align:right;font-weight:700">'+((totFix+totPen)>0?"+":"")+(totFix+totPen)+'</td></tr></tbody></table></div>';
+  if(uDays)html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">'+uDays+' ngày thiếu chỉ tiêu ở tuần chưa phân công PLD ('+uPen+' điểm — chưa tính cho Part nào).</div>';
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:4px">Điểm KP: khắc phục nhanh +2/đúng hạn +1/trễ −3/nặng −6. Thiếu ngày: −10/ngày &lt; '+goal+' vấn đề (tính cho Part của PLD trực tuần).</div>';
+  $("b1body").innerHTML=html;
+  LAST_REPORT={scope:scope,from:from,to:to,parts:parts,totFix:totFix,totPen:totPen,total:totFix+totPen,over:over,cm:cm,savedAt:new Date().toISOString()};
+}
+function renderB2(flags,wts,mon,today,goal){
+  var s=SCHED[mon],pld=(s&&s.pld)||"— chưa phân công —",part=(s&&s.part)||"";
+  var days=[];for(var i=0;i<7;i++)days.push(_addDays(mon,i));
+  var iss={},aud={};flags.forEach(f=>{if(f.ngay>=mon&&f.ngay<=days[6])iss[f.ngay]=(iss[f.ngay]||0)+1;});
+  wts.forEach(w=>{if(w.ngay>=mon&&w.ngay<=days[6]&&(w.ca||"")!=="Báo nhanh")aud[w.ngay]=(aud[w.ngay]||0)+1;});
+  var dn=["T2","T3","T4","T5","T6","T7","CN"],miss=0,rows="";
+  days.forEach((dd,i)=>{var c=iss[dd]||0,future=dd>today,ok=c>=goal,past=dd<today;if(past&&!ok)miss++;
+    var st=future?'<span style="color:var(--muted)">—</span>':(ok?'<span style="color:var(--pass)">✓ đạt</span>':'<span style="color:#b91c1c;font-weight:700">⚠️ thiếu</span>');
+    rows+='<tr'+(past&&!ok?' style="background:#fdf0f0"':'')+'><td><b>'+dn[i]+'</b> <span class="mono" style="color:var(--muted);font-size:11px">'+dd.slice(5)+'</span>'+(dd===today?' <span style="color:var(--brand)">• hôm nay</span>':'')+'</td><td style="text-align:right">'+(aud[dd]||0)+'</td><td style="text-align:right;font-weight:700;color:'+(future?"var(--muted)":(ok?"var(--pass)":"#b91c1c"))+'">'+(future?"—":c)+'</td><td style="text-align:right">'+st+'</td></tr>';});
+  var penTxt=miss?('<span style="color:#b91c1c;font-weight:700">'+miss+' ngày thiếu → '+(miss*-10)+' điểm'+(part?' (Part '+part+')':' (tuần chưa gán Part)')+'</span>'):'<span style="color:var(--pass)">Đủ chỉ tiêu các ngày đã qua</span>';
+  var html='<div class="banner" style="margin-bottom:10px">📋 Tuần '+mon+' → '+days[6]+' · PLD trực: <b>'+pld+'</b>'+(part?' · Part <b>'+part+'</b>':'')+' · Mục tiêu ≥ '+goal+' vấn đề/ngày</div>';
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Ngày</th><th style="text-align:right">Lượt Audit</th><th style="text-align:right">Vấn đề</th><th style="text-align:right">Chỉ tiêu</th></tr></thead><tbody>'+rows+'</tbody></table></div><div style="margin-top:8px">'+penTxt+'</div>';
+  var mgmt=SES&&(SES.role==="admin"||SES.role==="group_leader");
+  if(mgmt)html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:var(--muted);font-weight:600">Phân PLD trực tuần:</span><input type="date" id="schWeek" class="inp" style="width:auto"><select class="sel" id="schPld" style="width:auto"><option value="">— PLD —</option></select><input type="text" id="schNote" class="inp" placeholder="Ghi chú" style="width:auto;flex:1;min-width:100px"><button class="btn btn-p" onclick="saveSchedule()">Lưu</button></div>';
+  $("b2body").innerHTML=html;
+  if(mgmt){fillSchPld();if($("schWeek"))$("schWeek").value=mon;}
+}
+function renderB3(flags,wts,today){
+  var wT=wts.filter(w=>w.ngay===today),aud=wT.filter(w=>(w.ca||"")!=="Báo nhanh").length,qk=wT.filter(w=>(w.ca||"")==="Báo nhanh").length;
+  var nw=flags.filter(f=>f.ngay===today).length,open=0,over=0,cm=0;
+  flags.forEach(f=>{if(f.resolved)return;open++;var sc=scoreFlag({urgent:f.urgent,resolved:false,createdAt:f.created_at,resolvedAt:null});if(sc.overdue)over++;if(sc.needsCM)cm++;});
+  var st=(n,l,c)=>'<div class="m-stat"><span class="n"'+(c?' style="color:'+c+'"':'')+'>'+n+'</span> <span class="l">'+l+'</span></div>';
+  $("b3body").innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap">'+st(aud,"lượt Audit")+st(qk,"báo nhanh")+st(nw,"vấn đề mới")+st(open,"đang mở","var(--fail)")+st(over,"quá hạn","#C77A00")+st(cm,"cần đối sách","#b91c1c")+'</div>';
 }
 async function snapEl(el,filename,title){
   if(typeof html2canvas==="undefined"){toast("Chưa tải được công cụ chụp ảnh.");return;}
@@ -683,7 +709,7 @@ async function snapEl(el,filename,title){
   }catch(e){toast("Lỗi tạo ảnh: "+(e.message||e));}
 }
 function snapMap(){snapEl($("mapCapture"),"ban-do-di-tuan.png","Bản đồ đi tuần PRO-001");}
-function snapReport(){snapEl($("reportCard"),"bao-cao-di-tuan.png","Báo cáo đi tuần PRO-001");}
+function snapReport(){snapEl($("repSnap"),"bao-cao-di-tuan.png","Báo cáo đi tuần PRO-001");}
 
 function buildQuick(){
   var ls=$("q-line"); if(ls&&!ls.dataset.built){ls.dataset.built="1";Object.keys(LINE_OPTS).forEach(g=>{var og=document.createElement("optgroup");og.label=g;LINE_OPTS[g].forEach(o=>{var op=document.createElement("option");op.textContent=o;og.appendChild(op);});ls.appendChild(og);});}
